@@ -35,6 +35,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.layout.offset
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,7 +44,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MaterialTheme {
-                var mostrarEjercicio2 by rememberSaveable { mutableStateOf(false) }
+                var ejercicioActual by rememberSaveable { mutableStateOf(1) }
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -55,20 +57,22 @@ class MainActivity : ComponentActivity() {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(modifier = Modifier.weight(1f)) {
-                            if (mostrarEjercicio2) {
-                                EjercicioColor()
-                            } else {
-                                EjercicioVisibilidad()
+                            when (ejercicioActual) {
+                                1 -> EjercicioVisibilidad()
+                                2 -> EjercicioColor()
+                                3 -> EjercicioTamanoPosicion()
                             }
                         }
 
                         Button(
-                            onClick = { mostrarEjercicio2 = !mostrarEjercicio2 },
+                            onClick = {
+                                ejercicioActual = if (ejercicioActual == 3) 1 else ejercicioActual + 1
+                            },
                             modifier = Modifier.padding(bottom = 16.dp)
                         ) {
                             Text(
-                                if (mostrarEjercicio2) "Volver al ejercicio 1"
-                                else "Ir al ejercicio 2"
+                                if (ejercicioActual == 3) "Volver al ejercicio 1"
+                                else "Ir al ejercicio ${ejercicioActual + 1}"
                             )
                         }
                     }
@@ -231,6 +235,84 @@ private fun EjercicioColor() {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (usarResorte) "Animación: Resorte" else "Animación: Duración fija")
+        }
+    }
+}
+
+@Composable
+private fun EjercicioTamanoPosicion() {
+    var expandido by rememberSaveable { mutableStateOf(false) }
+    var moverFondo by rememberSaveable { mutableStateOf(true) }
+
+    val tamano by animateDpAsState(
+        targetValue = if (expandido) 104.dp else 64.dp,
+        animationSpec = tween(durationMillis = 800),
+        label = "Tamaño del núcleo"
+    )
+    val desplazamiento by animateDpAsState(
+        targetValue = if (expandido) 84.dp else 0.dp,
+        animationSpec = tween(durationMillis = 800),
+        label = "Posición del núcleo"
+    )
+
+    val acento = Color(0xFF5EEAD4)
+    val formaNucleo = RoundedCornerShape(16.dp)
+    val formaCamara = RoundedCornerShape(24.dp)
+
+    val modificadorNucleo = if (moverFondo) {
+        Modifier.offset(x = desplazamiento).background(acento, formaNucleo)
+    } else {
+        Modifier.background(acento, formaNucleo).offset(x = desplazamiento)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(
+            space = 16.dp,
+            alignment = Alignment.CenterVertically
+        )
+    ) {
+        Text(
+            text = "Traslado del núcleo",
+            color = Color.White,
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Box(
+            modifier = Modifier
+                .size(width = 220.dp, height = 152.dp)
+                .background(Color(0xFF111D30), formaCamara)
+                .border(1.dp, Color(0xFF334155), formaCamara)
+                .padding(12.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Box(
+                modifier = modificadorNucleo.size(tamano),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(Color(0xFF0F766E), RoundedCornerShape(6.dp))
+                )
+            }
+        }
+
+        Button(
+            onClick = { expandido = !expandido },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (expandido) "Volver al origen" else "Mover y ampliar")
+        }
+
+        Button(
+            onClick = { moverFondo = !moverFondo },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (moverFondo) "Orden: offset → fondo" else "Orden: fondo → offset")
         }
     }
 }
