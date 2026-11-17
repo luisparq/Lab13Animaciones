@@ -32,6 +32,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.LinearEasing
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,8 +42,36 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    EjercicioVisibilidad()
+                var mostrarEjercicio2 by rememberSaveable { mutableStateOf(false) }
+
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color(0xFF0B1220)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .safeDrawingPadding(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (mostrarEjercicio2) {
+                                EjercicioColor()
+                            } else {
+                                EjercicioVisibilidad()
+                            }
+                        }
+
+                        Button(
+                            onClick = { mostrarEjercicio2 = !mostrarEjercicio2 },
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        ) {
+                            Text(
+                                if (mostrarEjercicio2) "Volver al ejercicio 1"
+                                else "Ir al ejercicio 2"
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -137,6 +168,69 @@ private fun CuadroAnimado(visible: Boolean) {
                         .background(acento, RoundedCornerShape(12.dp))
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun EjercicioColor() {
+    var modoVerde by rememberSaveable { mutableStateOf(false) }
+    var usarResorte by rememberSaveable { mutableStateOf(false) }
+
+    val colorNucleo by animateColorAsState(
+        targetValue = if (modoVerde) Color(0xFF4ADE80) else Color(0xFF60A5FA),
+        animationSpec = if (usarResorte) {
+            spring(dampingRatio = 0.45f, stiffness = 35f)
+        } else {
+            tween(durationMillis = 1800, easing = LinearEasing)
+        },
+        label = "Color del núcleo"
+    )
+
+    val formaCamara = RoundedCornerShape(24.dp)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(
+            space = 16.dp,
+            alignment = Alignment.CenterVertically
+        )
+    ) {
+        Text(
+            text = "Control del núcleo",
+            color = Color.White,
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Box(
+            modifier = Modifier
+                .size(184.dp)
+                .background(Color(0xFF111D30), formaCamara)
+                .border(1.dp, Color(0xFF334155), formaCamara),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(108.dp)
+                    .background(colorNucleo, RoundedCornerShape(20.dp))
+            )
+        }
+
+        Button(
+            onClick = { modoVerde = !modoVerde },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (modoVerde) "Cambiar a azul" else "Cambiar a verde")
+        }
+
+        Button(
+            onClick = { usarResorte = !usarResorte },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (usarResorte) "Animación: Resorte" else "Animación: Duración fija")
         }
     }
 }
