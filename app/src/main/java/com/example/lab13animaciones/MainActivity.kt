@@ -5,6 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -24,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -414,7 +419,30 @@ private fun EjercicioContenido() {
 @Composable
 private fun EjercicioFinal() {
     var cargas by rememberSaveable { mutableStateOf(0) }
+    var fallos by rememberSaveable { mutableStateOf(0) }
     val completado = cargas == 3
+    val partidaTerminada = completado || fallos == 3
+    val pulso = if (partidaTerminada) {
+        null
+    } else {
+        key(cargas, fallos) {
+            val reloj = rememberInfiniteTransition(label = "Reloj del reactor")
+            reloj.animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1600 - cargas * 200, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "Posición del pulso"
+            )
+        }
+    }
+    val mensaje = when {
+        completado -> "¡Reactor activado!"
+        partidaTerminada -> "Reactor bloqueado"
+        else -> "Cargas $cargas/3 · Intentos ${3 - fallos}/3"
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
@@ -427,36 +455,72 @@ private fun EjercicioFinal() {
             style = MaterialTheme.typography.headlineSmall
         )
         Text(
-            "Carga el núcleo tres veces para llevarlo a la meta.",
+            "Pulsa Sincronizar cuando la marca blanca esté en la zona verde.",
             color = Color(0xFFCBD5E1)
         )
         PistaDelReactor(cargas)
 
+        BoxWithConstraints(
+            modifier = Modifier.size(width = 234.dp, height = 26.dp)
+                .background(Color(0xFF111D30), RoundedCornerShape(8.dp))
+                .padding(horizontal = 6.dp)
+        ) {
+            val recorrido = maxWidth
+            Box(
+                modifier = Modifier.align(Alignment.CenterStart)
+                    .offset(x = recorrido * 0.40f)
+                    .size(width = recorrido * 0.20f, height = 18.dp)
+                    .background(Color(0xFF4ADE80), RoundedCornerShape(4.dp))
+            )
+            if (pulso != null) {
+                Box(
+                    modifier = Modifier.align(Alignment.CenterStart)
+                        .offset(x = recorrido * pulso.value - 2.dp)
+                        .size(width = 4.dp, height = 22.dp)
+                        .background(Color.White, RoundedCornerShape(2.dp))
+                )
+            }
+        }
+
         AnimatedContent(
-            targetState = cargas,
+            targetState = mensaje,
             transitionSpec = { fadeIn(tween(350)).togetherWith(fadeOut(tween(200))) },
             label = "Progreso de la misión"
-        ) { carga ->
+        ) { texto ->
             Text(
-                text = if (carga == 3) "¡Reactor activado!" else "Carga del núcleo · $carga de 3",
-                color = if (carga == 3) Color(0xFF4ADE80) else Color.White,
+                text = texto,
+                color = when (texto) {
+                    "¡Reactor activado!" -> Color(0xFF4ADE80)
+                    "Reactor bloqueado" -> Color(0xFFFDA4AF)
+                    else -> Color.White
+                },
                 style = MaterialTheme.typography.titleMedium
             )
         }
 
         Button(
-            onClick = { cargas = (cargas + 1).coerceAtMost(3) },
-            enabled = !completado,
+            onClick = {
+                if (cargas < 3 && fallos < 3) {
+                    if ((pulso?.value ?: -1f) in 0.40f..0.60f) cargas += 1 else fallos += 1
+                }
+            },
+            enabled = !partidaTerminada,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Cargar núcleo")
+            Text("Sincronizar")
         }
         AnimatedVisibility(
-            visible = completado,
+            visible = partidaTerminada,
             enter = fadeIn(tween(600)),
             exit = fadeOut(tween(250))
         ) {
-            Button(onClick = { cargas = 0 }, modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = {
+                    cargas = 0
+                    fallos = 0
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Reiniciar misión")
             }
         }
