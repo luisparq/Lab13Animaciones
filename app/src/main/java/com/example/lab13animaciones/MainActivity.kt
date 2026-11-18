@@ -37,6 +37,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.offset
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,17 +63,18 @@ class MainActivity : ComponentActivity() {
                                 1 -> EjercicioVisibilidad()
                                 2 -> EjercicioColor()
                                 3 -> EjercicioTamanoPosicion()
+                                4 -> EjercicioContenido()
                             }
                         }
 
                         Button(
                             onClick = {
-                                ejercicioActual = if (ejercicioActual == 3) 1 else ejercicioActual + 1
+                                ejercicioActual = if (ejercicioActual == 4) 1 else ejercicioActual + 1
                             },
                             modifier = Modifier.padding(bottom = 16.dp)
                         ) {
                             Text(
-                                if (ejercicioActual == 3) "Volver al ejercicio 1"
+                                if (ejercicioActual == 4) "Volver al ejercicio 1"
                                 else "Ir al ejercicio ${ejercicioActual + 1}"
                             )
                         }
@@ -313,6 +316,93 @@ private fun EjercicioTamanoPosicion() {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (moverFondo) "Orden: offset → fondo" else "Orden: fondo → offset")
+        }
+    }
+}
+
+private enum class EstadoDiagnostico(
+    val titulo: String,
+    val mensaje: String,
+    val color: Color
+) {
+    CARGANDO(
+        "Cargando",
+        "Analizando el núcleo de energía…",
+        Color(0xFF60A5FA)
+    ),
+    CONTENIDO(
+        "Contenido",
+        "Diagnóstico completo. Núcleo estable.",
+        Color(0xFF5EEAD4)
+    ),
+    ERROR(
+        "Error",
+        "Se perdió la conexión con el núcleo.",
+        Color(0xFFFDA4AF)
+    )
+}
+
+@Composable
+private fun EjercicioContenido() {
+    var estado by rememberSaveable { mutableStateOf(EstadoDiagnostico.CARGANDO) }
+    val formaPanel = RoundedCornerShape(24.dp)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(
+            space = 16.dp,
+            alignment = Alignment.CenterVertically
+        )
+    ) {
+        Text(
+            text = "Diagnóstico del núcleo",
+            color = Color.White,
+            style = MaterialTheme.typography.headlineSmall
+        )
+
+        AnimatedContent(
+            targetState = estado,
+            modifier = Modifier.fillMaxWidth(),
+            transitionSpec = {
+                fadeIn(animationSpec = tween(durationMillis = 550, delayMillis = 150))
+                    .togetherWith(fadeOut(animationSpec = tween(durationMillis = 250)))
+            },
+            label = "Estado del diagnóstico"
+        ) { estadoMostrado ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF111D30), formaPanel)
+                    .border(1.dp, estadoMostrado.color, formaPanel)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = estadoMostrado.titulo,
+                    color = estadoMostrado.color,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = estadoMostrado.mensaje,
+                    color = Color(0xFFCBD5E1)
+                )
+            }
+        }
+
+        Button(
+            onClick = {
+                estado = when (estado) {
+                    EstadoDiagnostico.CARGANDO -> EstadoDiagnostico.CONTENIDO
+                    EstadoDiagnostico.CONTENIDO -> EstadoDiagnostico.ERROR
+                    EstadoDiagnostico.ERROR -> EstadoDiagnostico.CARGANDO
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Siguiente estado")
         }
     }
 }
