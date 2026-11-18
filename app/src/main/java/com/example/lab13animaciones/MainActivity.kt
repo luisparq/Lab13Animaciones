@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -64,17 +65,19 @@ class MainActivity : ComponentActivity() {
                                 2 -> EjercicioColor()
                                 3 -> EjercicioTamanoPosicion()
                                 4 -> EjercicioContenido()
+                                5 -> EjercicioFinal()
                             }
                         }
 
                         Button(
                             onClick = {
-                                ejercicioActual = if (ejercicioActual == 4) 1 else ejercicioActual + 1
+                                ejercicioActual = if (ejercicioActual == 5) 1 else ejercicioActual + 1
                             },
                             modifier = Modifier.padding(bottom = 16.dp)
                         ) {
                             Text(
-                                if (ejercicioActual == 4) "Volver al ejercicio 1"
+                                if (ejercicioActual == 5) "Volver al ejercicio 1"
+                                else if (ejercicioActual == 4) "Ir al ejercicio final"
                                 else "Ir al ejercicio ${ejercicioActual + 1}"
                             )
                         }
@@ -404,5 +407,109 @@ private fun EjercicioContenido() {
         ) {
             Text("Siguiente estado")
         }
+    }
+}
+
+
+@Composable
+private fun EjercicioFinal() {
+    var cargas by rememberSaveable { mutableStateOf(0) }
+    val completado = cargas == 3
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
+    ) {
+        Text(
+            "Reactor en marcha",
+            color = Color.White,
+            style = MaterialTheme.typography.headlineSmall
+        )
+        Text(
+            "Carga el núcleo tres veces para llevarlo a la meta.",
+            color = Color(0xFFCBD5E1)
+        )
+        PistaDelReactor(cargas)
+
+        AnimatedContent(
+            targetState = cargas,
+            transitionSpec = { fadeIn(tween(350)).togetherWith(fadeOut(tween(200))) },
+            label = "Progreso de la misión"
+        ) { carga ->
+            Text(
+                text = if (carga == 3) "¡Reactor activado!" else "Carga del núcleo · $carga de 3",
+                color = if (carga == 3) Color(0xFF4ADE80) else Color.White,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+
+        Button(
+            onClick = { cargas = (cargas + 1).coerceAtMost(3) },
+            enabled = !completado,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Cargar núcleo")
+        }
+        AnimatedVisibility(
+            visible = completado,
+            enter = fadeIn(tween(600)),
+            exit = fadeOut(tween(250))
+        ) {
+            Button(onClick = { cargas = 0 }, modifier = Modifier.fillMaxWidth()) {
+                Text("Reiniciar misión")
+            }
+        }
+    }
+}
+
+@Composable
+private fun PistaDelReactor(cargas: Int) {
+    val tamano by animateDpAsState(
+        targetValue = (42 + cargas * 8).dp,
+        animationSpec = tween(550),
+        label = "Tamaño del núcleo"
+    )
+    val color by animateColorAsState(
+        targetValue = when (cargas) {
+            0 -> Color(0xFF60A5FA)
+            1 -> Color(0xFF38BDF8)
+            2 -> Color(0xFF2DD4BF)
+            else -> Color(0xFF4ADE80)
+        },
+        animationSpec = tween(550),
+        label = "Color del núcleo"
+    )
+    val formaNucleo = RoundedCornerShape(16.dp)
+    val formaPista = RoundedCornerShape(24.dp)
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .size(width = 234.dp, height = 104.dp)
+            .background(Color(0xFF111D30), formaPista)
+            .border(1.dp, Color(0xFF334155), formaPista)
+            .padding(horizontal = 12.dp)
+    ) {
+        val distancia = (maxWidth - 66.dp).coerceAtLeast(0.dp)
+        val desplazamiento by animateDpAsState(
+            targetValue = distancia * (cargas / 3f),
+            animationSpec = tween(550),
+            label = "Posición del núcleo"
+        )
+
+        Box(
+            modifier = Modifier.align(Alignment.CenterEnd)
+                .size(66.dp)
+                .border(2.dp, Color(0xFF64748B), formaNucleo),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("META", color = Color(0xFFCBD5E1), style = MaterialTheme.typography.labelSmall)
+        }
+        Box(
+            modifier = Modifier.align(Alignment.CenterStart)
+                .offset(x = desplazamiento)
+                .size(tamano)
+                .background(color, formaNucleo)
+        )
     }
 }
